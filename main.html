@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/redux/4.0.1/redux.js"></script>
+</head>
+<body>
+    <div id="subject"></div>
+    <div id="toc"></div>
+    <div id="control"></div>
+    <div id="content"></div>
+
+    <script>
+function subject() {
+    document.querySelector('#subject').innerHTML = `
+    <header>
+        <h1>WEB</h1>
+        Hello, WEB!
+    </header>
+    `;
+}
+function TOC() { // table of contents
+    let state = store.getState();
+    console.log(state);
+    let i = 0;
+    let liTags = '';
+    while(i<state.contents.length) {
+        liTags = liTags + `<li><a href="${state.contents[i].id}">${state.contents[i].title}</a></li>`
+        i = i + 1;
+    }
+    document.querySelector('#toc').innerHTML = `
+    <nav>
+        <ol>
+            ${liTags}
+        </ol>
+    </nav>       
+    `;
+}
+function control() {
+    document.querySelector('#control').innerHTML = `
+    <ul>
+        <li><input type="button" value='create'></a></li>
+        <li><input type='button' value='delete'></a></li>
+    </ul>
+    `;
+}
+function content() {
+    document.querySelector('#content').innerHTML = `
+    <article>
+        <h2>HTML</h2>
+        HTML is ...
+    </article>
+    `;
+}
+
+function reducer(state, action) {
+    if(state === undefined) {
+        return {
+            contents: [
+                {id:1, title:'HTML', desc:"HTML is ..."},
+                {id:2, title:'CSS', desc:"CSS is ..."},
+            ]
+        }
+    }
+}
+const store = Redux.createStore(reducer);
+
+
+subject();
+TOC();
+control();
+content();
+    </script>
+
+    
+</body>
+</html>
