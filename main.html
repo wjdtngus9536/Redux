@@ -1,10 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/redux/4.0.1/redux.js"></script>
 </head>
+
 <body>
     <div id="subject"></div>
     <div id="toc"></div>
@@ -12,67 +14,181 @@
     <div id="content"></div>
 
     <script>
-function subject() {
-    document.querySelector('#subject').innerHTML = `
+        /***********************************
+        * UI function definition
+        ************************************/
+        function subject() {
+            document.querySelector('#subject').innerHTML = `
     <header>
         <h1>WEB</h1>
         Hello, WEB!
     </header>
     `;
-}
-function TOC() { // table of contents
-    let state = store.getState();
-    console.log(state);
-    let i = 0;
-    let liTags = '';
-    while(i<state.contents.length) {
-        liTags = liTags + `<li><a href="${state.contents[i].id}">${state.contents[i].title}</a></li>`
-        i = i + 1;
-    }
-    document.querySelector('#toc').innerHTML = `
+        }
+        function TOC() { // table of contents
+            let state = store.getState();
+            // console.log(state);
+            let i = 0;
+            let liTags = '';
+            while (i < state.contents.length) {
+                liTags = liTags + `
+        <li>
+            <a href="${state.contents[i].id}" 
+            onclick="
+                event.preventDefault();
+                const action = {type:'SELECT', id:${state.contents[i].id}};
+                store.dispatch(action);
+            ">
+                ${state.contents[i].title}
+            </a>
+        </li>`;
+                i = i + 1;
+            }
+            document.querySelector('#toc').innerHTML = `
     <nav>
         <ol>
             ${liTags}
         </ol>
     </nav>       
     `;
-}
-function control() {
-    document.querySelector('#control').innerHTML = `
-    <ul>
-        <li><input type="button" value='create'></a></li>
-        <li><input type='button' value='delete'></a></li>
-    </ul>
-    `;
-}
-function content() {
-    document.querySelector('#content').innerHTML = `
-    <article>
-        <h2>HTML</h2>
-        HTML is ...
-    </article>
-    `;
-}
-
-function reducer(state, action) {
-    if(state === undefined) {
-        return {
-            contents: [
-                {id:1, title:'HTML', desc:"HTML is ..."},
-                {id:2, title:'CSS', desc:"CSS is ..."},
-            ]
         }
-    }
-}
-const store = Redux.createStore(reducer);
+        function control() {
+            const state = store.getState();
+            document.querySelector('#control').innerHTML = `
+            <ul>
+                <li><input type="button" value='create' onclick="
+                        event.preventDefault();
+                        const action = {type:'WRITE'};
+                        store.dispatch(action);
+                    " />
+                </li>
+                <li><input type='button' value='delete' onclick="
+                        const action = {type:'DELETE'};
+                        store.dispatch(action);
+                    "></a></li>
+            </ul>
+            `;
+        }
+        function content() {
+            const state = store.getState();
+            if (state.mode === 'create') {
+                document.querySelector('#content').innerHTML =`
+                <article>
+                    <h2>Create</h2>
+                    <form onsubmit="
+                        event.preventDefault();
+                        const _title = this.title.value;
+                        const _desc = this.desc.value;
+                        store.dispatch({
+                            type: 'CREATE',
+                            title: _title,
+                            desc: _desc 
+                        })
+                    ">
+                        <p>
+                            <input type='text' name='title' placeholder='title' />
+                        </p>
+                        <p>
+                            <textarea name="desc" placeholder="description"></textarea>
+                        </p>
+                        <p>
+                            <input type="submit" />
+                        </p>
+                    </form>
+                </article
+                `;
+            } else if (state.mode === 'read') {
+                let title, body;
+                for (let i = 0; i < state.contents.length; i++) {
+                    if (state.contents[i].id === state.selected_id) {
+                        title = state.contents[i].title;
+                        body = state.contents[i].desc;
+                        break;
+                    }
+                }
+
+                document.querySelector('#content').innerHTML = `
+                <article>
+                    <h2>${title}</h2>
+                    ${body}
+                </article>
+                `;
+            } else if (state.mode === 'welcome') {
+                document.querySelector('#content').innerHTML = `
+                <article>
+                    <h2>Welcome</h2>
+                    Hello Redux
+                    </article>
+                `;
+            }
+        }
 
 
-subject();
-TOC();
-control();
-content();
+
+        /***********************************
+         * for redux
+         ***********************************/
+
+        function reducer(state, action) {
+            // console.log(state, action);
+            if (state === undefined) {
+                // return하는 값이 state 그 자체
+                return {
+                    max_id: 2, 
+                    mode: 'read',
+                    selected_id: 1,
+                    contents: [
+                        { id: 1, title: 'HTML', desc: "HTML is ..." },
+                        { id: 2, title: 'CSS', desc: "CSS is ..." },
+                    ]
+                }
+            }
+
+            let newState;
+            if (action.type === 'SELECT') {
+                newState = Object.assign({}, state, { mode: 'read', selected_id: action.id })
+                console.log(state, newState, action);
+            } else if(action.type === 'WRITE') {
+                newState = Object.assign({}, state, { mode: 'create'});
+            } else if (action.type === 'CREATE') {
+                // 배열을 복제할 때는 Object.assign()이 아닌 .concat을 사용하면 편하게 복제 가능
+                const newContents = state.contents.concat();
+                const newMaxId = state.max_id + 1;
+                newContents.push({id: newMaxId, title: action.title, desc: action.desc})
+                newState = Object.assign({}, state, {
+                    max_id:newMaxId,
+                    mode:'read',
+                    contents:newContents,
+                    selected_id: newMaxId
+                })
+            } else if (action.type === 'DELETE') {
+                const newContents = [];
+                for(let i=0; i<state.contents.length; i++) {
+                    if(state.contents[i].id !== state.selected_id) {
+                        newContents.push(state.contents[i]);
+                    }
+                    newState = Object.assign({}, state, {contents: newContents, mode: 'welcome'});
+                }
+            }
+            return newState;
+        }
+
+
+
+        /*************************
+         * declaration
+         *************************/
+        const store = Redux.createStore(reducer);
+        store.subscribe(content);
+        store.subscribe(TOC);
+
+        subject();
+        TOC();
+        control();
+        content();
     </script>
 
-    
+
 </body>
+
 </html>
